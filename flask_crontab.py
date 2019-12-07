@@ -74,7 +74,8 @@ class _CronJob:
             "kwargs": self.kwargs,
         }
         j = json.JSONEncoder(sort_keys=True).encode(data)
-        return hashlib.md5(j.encode("utf-8")).hexdigest()
+        h = hashlib.md5(j.encode("utf-8")).hexdigest()
+        return h
 
     def run(self) -> None:
         try:
@@ -103,7 +104,7 @@ class _CronJob:
 
 class _Crontab:
     CRONTAB_LINE_REGEXP = re.compile(
-        r"^\s*((?:[^#\s]+\s+){5})([^#\n]*)\s*(?:#\s*([^\n]*)|$)"
+        r"^\s*((?:[^#\s]+\s+){5})([^#\n]*?)\s*(?:#\s*([^\n]*)|$)"
     )
 
     def __init__(self, *, verbose: bool = True, readonly: bool = False):
@@ -112,7 +113,7 @@ class _Crontab:
         self.verbose = verbose
         self.readonly = readonly
         self.crontab_lines = []  # type: List[str]
-        self.settings = current_app.config.get_namespace("CRONTAB")
+        self.settings = current_app.config.get_namespace("CRONTAB_")
         self.crontab_comment = "Flask cron jobs for {}".format(current_app.name)
 
     def __enter__(self) -> "_Crontab":
@@ -134,11 +135,12 @@ class _Crontab:
         """
         Reads the crontab into internal buffer
         """
-        self.crontab_lines = (
-            subprocess.check_output([self.settings["executable"], "-l"])
-            .decode("utf-8")
-            .splitlines()
-        )
+        try:
+            self.crontab_lines = subprocess.run(
+                [self.settings["executable"], "-l"], text=True, capture_output=True
+            ).stdout.splitlines()
+        except AttributeError:
+            pass
 
     def write(self) -> None:
         """
@@ -150,7 +152,7 @@ class _Crontab:
             tmp.write(line + "\n")
         tmp.close()
         # replace the contab with the temporary file
-        subprocess.check_call([self.settings["executable"], "-l"])
+        subprocess.run([self.settings["executable"], "-l"], capture_output=True)
         os.unlink(path)
 
     def add_jobs(self) -> None:
@@ -174,7 +176,11 @@ class _Crontab:
             sched, script, comment = job.groups()
             if comment == self.crontab_comment:
                 job_hash = script.split("crontab run ")[1]
-                print("{} -> {}".format(job_hash, self.__get_job_by_hash(job_hash)))
+                print(
+                    "{} -> {}".format(
+                        job_hash, self.__get_job_by_hash(job_hash).func_ident
+                    )
+                )
 
     def remove_jobs(self) -> None:
         """
@@ -194,7 +200,7 @@ class _Crontab:
                 if self.verbose:
                     print(
                         "removing cronjob: {} -> {}".format(
-                            job_hash, self.__get_job_by_hash(job_hash)
+                            job_hash, self.__get_job_by_hash(job_hash).func_ident
                         )
                     )
 
@@ -252,18 +258,16 @@ class _Crontab:
 
 def common_options(f):
     f = click.option(
-        "--readonly",
-        default=False,
-        is_flag=True,
-        help="Do not touch the crontab settings.",
-    )(f)
-    f = click.option(
-        "--suppress", "verbose", flag_value=False, help="Do not show verbose outputs."
+        "--suppress",
+        "verbose",
+        flag_value=False,
+        default=True,
+        help="Do not show verbose outputs.",
     )(f)
     return f
 
 
-@click.group()
+@click.group(help="Manage the scheduled cron jobs.")
 def crontab_cli():
     pass
 
@@ -271,8 +275,8 @@ def crontab_cli():
 @crontab_cli.command()
 @common_options
 @with_appcontext
-def add(readonly, verbose):
-    with _Crontab(verbose=verbose, readonly=readonly) as c:
+def add(verbose):
+    with _Crontab(verbose=verbose) as c:
         c.remove_jobs()
         c.add_jobs()
 
@@ -280,8 +284,8 @@ def add(readonly, verbose):
 @crontab_cli.command()
 @common_options
 @with_appcontext
-def remove(readonly, verbose):
-    with _Crontab(verbose=verbose, readonly=readonly) as c:
+def remove(verbose):
+    with _Crontab(verbose=verbose) as c:
         c.remove_jobs()
 
 
@@ -289,16 +293,16 @@ def remove(readonly, verbose):
 @common_options
 @click.argument("job_hash")
 @with_appcontext
-def run(readonly, verbose, job_hash):
-    with _Crontab(verbose=verbose, readonly=readonly) as c:
+def run(verbose, job_hash):
+    with _Crontab(verbose=verbose, readonly=True) as c:
         c.run_job(job_hash)
 
 
 @crontab_cli.command()
 @common_options
 @with_appcontext
-def show(readonly, verbose):
-    with _Crontab(verbose=verbose, readonly=readonly) as c:
+def show(verbose):
+    with _Crontab(verbose=verbose, readonly=True) as c:
         c.show_jobs()
 
 
