@@ -70,12 +70,29 @@ $ flask crontab run <job_hash>
 
 See supported options via `--help` for every commands.
 
+## Decorator API
+
+```python
+def job(
+    minute: str = "*",
+    hour: str = "*",
+    day: str = "*",
+    month: str = "*",
+    day_of_week: str = "*",
+    args: Tuple[Any, ...] = (),
+    kwargs: Optional[Dict[str, Any]] = None,
+) -> Callable:
+```
+
+The decorator accepts five arguments `minute`, `hour`, `day`, `month`, `day_of_month`, which are the same as crontab 5-parts time format. Any part that is not given defaults to `*`.
+Besides, `job` decorator accepts `args` and `kwargs` which will be passed to the decorated function as positional arguments and keywords arguments, respectively.
+
 ## Configuration
 
-| Config item        | Description                      | Default value      |
-| ------------------ | -------------------------------- | ------------------ |
-| CRONTAB_EXECUTABLE | The executable path to `crontab` | `/usr/bin/crontab` |
-| CRONTAB_LOCK_JOBS  | Whether lock jobs when running   | `False`            |
+| Config item        | Description                    | Default value      |
+| ------------------ | ------------------------------ | ------------------ |
+| CRONTAB_EXECUTABLE | The absolute path of `crontab` | `/usr/bin/crontab` |
+| CRONTAB_LOCK_JOBS  | Whether lock jobs when running | `False`            |
 
 ## License
 
