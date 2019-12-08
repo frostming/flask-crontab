@@ -3,8 +3,9 @@
     ~~~~~~~~~~~~~
     Simple Flask scheduled tasks without extra daemons
 
-    Author: frostming <mianghong@gmail.com>
-    License: MIT
+    :author: Frost Ming
+    :email: mianghong@gmail.com
+    :license: MIT
 """
 import fcntl
 import hashlib
@@ -82,6 +83,7 @@ class _CronJob:
             self.func(*self.args, **self.kwargs)
         except Exception:
             logger.exception("Failed to complete cronjob at %s", self.func_ident)
+            raise
 
     def as_crontab_line(self) -> str:
         flask_bin = sys.executable + " -m flask"
@@ -131,16 +133,19 @@ class _Crontab:
         if not self.readonly:
             self.write()
 
+    def __get_crontab_lines(self):
+        try:
+            return subprocess.run(
+                [self.settings["executable"], "-l"], text=True, capture_output=True
+            ).stdout.splitlines()
+        except AttributeError:
+            return []
+
     def read(self) -> None:
         """
         Reads the crontab into internal buffer
         """
-        try:
-            self.crontab_lines = subprocess.run(
-                [self.settings["executable"], "-l"], text=True, capture_output=True
-            ).stdout.splitlines()
-        except AttributeError:
-            pass
+        self.crontab_lines[:] = self.__get_crontab_lines()
 
     def write(self) -> None:
         """
@@ -160,6 +165,7 @@ class _Crontab:
         Adds all jobs defined in CRONJOBS setting to internal buffer
         """
         for job in self.jobs:
+            print("Adding cronjob: {} -> {}".format(job.hash, job.func_ident))
             self.crontab_lines.append(job.as_crontab_line())
 
     def show_jobs(self):
@@ -199,7 +205,7 @@ class _Crontab:
                 job_hash = script.split("crontab run ")[1]
                 if self.verbose:
                     print(
-                        "removing cronjob: {} -> {}".format(
+                        "Removing cronjob: {} -> {}".format(
                             job_hash, self.__get_job_by_hash(job_hash).func_ident
                         )
                     )
@@ -217,7 +223,7 @@ class _Crontab:
             # create and open a lock file
             lock_file = open(
                 os.path.join(
-                    tempfile.gettempdir(), "django_crontab_%s.lock" % job_hash
+                    tempfile.gettempdir(), "flask_crontab_%s.lock" % job_hash
                 ),
                 "w",
             )
@@ -264,7 +270,7 @@ def common_options(f):
         default=True,
         help="Do not show verbose outputs.",
     )(f)
-    return f
+    return with_appcontext(f)
 
 
 @click.group(help="Manage the scheduled cron jobs.")
@@ -274,7 +280,6 @@ def crontab_cli():
 
 @crontab_cli.command()
 @common_options
-@with_appcontext
 def add(verbose):
     with _Crontab(verbose=verbose) as c:
         c.remove_jobs()
@@ -283,7 +288,6 @@ def add(verbose):
 
 @crontab_cli.command()
 @common_options
-@with_appcontext
 def remove(verbose):
     with _Crontab(verbose=verbose) as c:
         c.remove_jobs()
@@ -292,7 +296,6 @@ def remove(verbose):
 @crontab_cli.command()
 @common_options
 @click.argument("job_hash")
-@with_appcontext
 def run(verbose, job_hash):
     with _Crontab(verbose=verbose, readonly=True) as c:
         c.run_job(job_hash)
@@ -300,7 +303,6 @@ def run(verbose, job_hash):
 
 @crontab_cli.command()
 @common_options
-@with_appcontext
 def show(verbose):
     with _Crontab(verbose=verbose, readonly=True) as c:
         c.show_jobs()
