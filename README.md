@@ -2,7 +2,9 @@
 
 > Simple Flask scheduled tasks without extra daemons
 
-This project is highly inspired by [django-crontab](https://github.com/kraiz/django-crontab), and only works on Python 3.5+.
+![PyPI](https://img.shields.io/pypi/v/flask-crontab) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/flask-crontab) ![Github Action](https://github.com/frostming/flask-crontab/workflows/Continuous%20Integration/badge.svg) ![Supported Platforms](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey)
+
+This project is strongly inspired by [django-crontab](https://github.com/kraiz/django-crontab), and only works on Python 3.5+.
 Due to the coming EOL of Python 2 on 2020/01/01, there is no plan for Python 2 support.
 
 ## Quick Start

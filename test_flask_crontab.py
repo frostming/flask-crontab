@@ -98,7 +98,7 @@ def test_run_jobs(crontab, _crontab, invoke):
     invoke(args=["add"])
     result = invoke(args=["run", "98fa712b876a5ec6f63cff664b748da3"])
     assert result.exit_code == 0
-    foo.assert_called()
+    foo.assert_called_with()
     result = invoke(args=["run", "625b3192eb860a8a0bb0a43656cedf98"])
     assert result.exit_code == 0
     foo.assert_called_with("hello", name="John")
