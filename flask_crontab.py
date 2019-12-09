@@ -23,10 +23,8 @@ from flask import current_app, Flask
 from flask.cli import with_appcontext
 
 logger = logging.getLogger(__name__)
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __all__ = ["Crontab"]
-
-
 def _ensure_extension_object():
     obj = current_app.extensions.get("crontab")
     if not obj:
@@ -157,7 +155,7 @@ class _Crontab:
             tmp.write(line + "\n")
         tmp.close()
         # replace the contab with the temporary file
-        subprocess.run([self.settings["executable"], "-l"], capture_output=True)
+        subprocess.run([self.settings["executable"], path], capture_output=True)
         os.unlink(path)
 
     def add_jobs(self) -> None:
