@@ -23,8 +23,10 @@ from flask import current_app, Flask
 from flask.cli import with_appcontext
 
 logger = logging.getLogger(__name__)
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 __all__ = ["Crontab"]
+
+
 def _ensure_extension_object():
     obj = current_app.extensions.get("crontab")
     if not obj:
