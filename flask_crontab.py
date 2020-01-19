@@ -134,8 +134,8 @@ class _Crontab:
     def __get_crontab_lines(self):
         try:
             return subprocess.run(
-                [self.settings["executable"], "-l"], text=True, capture_output=True
-            ).stdout.splitlines()
+                [self.settings["executable"], "-l"], stdout=subprocess.PIPE
+            ).stdout.decode("utf-8").splitlines()
         except AttributeError:
             return []
 
@@ -155,7 +155,7 @@ class _Crontab:
             tmp.write(line + "\n")
         tmp.close()
         # replace the contab with the temporary file
-        subprocess.run([self.settings["executable"], path], capture_output=True)
+        subprocess.run([self.settings["executable"], path], stdout=subprocess.PIPE)
         os.unlink(path)
 
     def add_jobs(self) -> None:
@@ -166,7 +166,7 @@ class _Crontab:
             print("Adding cronjob: {} -> {}".format(job.hash, job.func_ident))
             self.crontab_lines.append(job.as_crontab_line())
 
-    def show_jobs(self):
+    def show_jobs(self) -> None:
         """
         Print the jobs from from crontab
         """
