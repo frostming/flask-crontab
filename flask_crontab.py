@@ -92,15 +92,17 @@ class _CronJob:
             if os.getenv("FLASK_APP")
             else ""
         )
-        crontab_comment = "Flask cron jobs for {}".format(current_app.name)
-        line = "{} cd {} && {}{} crontab run {}  # {}".format(
+        using_zsh = os.environ.get('SHELL', '').endswith('/zsh')
+        line = "{} cd {} && {}{} crontab run {}".format(
             self.schedule,
             os.getcwd(),
             env_prefix,
             flask_bin,
             self.hash,
-            crontab_comment,
         )
+        if not using_zsh:
+            crontab_comment = "Flask cron jobs for {}".format(current_app.name)
+            line += '  # ' + crontab_comment
         return line
 
 
