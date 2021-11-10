@@ -54,6 +54,9 @@ That's it! If you type in `crontab -l` in your shell, you can see some new lines
 
 Show jobs managed by current app:
 
+## Troubleshooting with Docker
+[Jobs only fire when Run Manually](https://stackoverflow.com/a/41938139/6024644)
+
 ```bash
 $ flask crontab show
 ```
